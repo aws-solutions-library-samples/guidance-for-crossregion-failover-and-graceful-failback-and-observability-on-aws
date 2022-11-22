@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  LogGroupAWSHealthAPIGateway: 
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: /aws/events/aws_health_api_gateway
+      RetentionInDays: 7
+
+  LogGroupAWSHealthLambda: 
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: /aws/events/aws_health_lambda
+      RetentionInDays: 7
+  
+  LogGroupAWSHealthRDS: 
+    Type: AWS::Logs::LogGroup
+    Properties: 
+      LogGroupName: /aws/events/aws_health_rds
+      RetentionInDays: 7
+
+  EventBridgeRuleAWSHealthAPIGateway:
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: aws_health_api_gateway
+      State: ENABLED
+      EventPattern: |
+          {
+            "source": ["aws.health"],
+            "detail-type": ["AWS Health Event"],
+            "detail": {
+              "service": ["APIGATEWAY"],
+              "eventTypeCategory": ["issue"],
+              "eventTypeCode": ["AWS_APIGATEWAY_API_ISSUE", "AWS_APIGATEWAY_OPERATIONAL_ISSUE"]
+            }
+          }
+      Targets: 
+        - Id: 'CloudWatchLogGroup_api_gateway'
+          Arn: !GetAtt LogGroupAWSHealthAPIGateway.Arn
+
+  EventBridgeRuleAWSHealthLambda:
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: aws_health_lambda
+      State: ENABLED
+      EventPattern: |
+          {
+            "source": ["aws.health"],
+            "detail-type": ["AWS Health Event"],
+            "detail": {
+              "service": ["LAMBDA"],
+              "eventTypeCategory": ["issue"],
+              "eventTypeCode": ["AWS_LAMBDA_CONSOLE_ISSUE", "AWS_LAMBDA_IAM_ISSUE", "AWS_LAMBDA_API_ISSUE", "AWS_LAMBDA_OPERATIONAL_ISSUE"]
+            }
+          }
+      Targets: 
+        - Id: 'CloudWatchLogGroup_lambda'
+          Arn: !GetAtt LogGroupAWSHealthLambda.Arn
+    
+  EventBridgeRuleAWSHealthRDS:
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: aws_health_rds
+      State: ENABLED
+      EventPattern: |
+          {
+            "source": ["aws.health"],
+            "detail-type": ["AWS Health Event"],
+            "detail": {
+              "service": ["RDS"],
+              "eventTypeCategory": ["issue"],
+              "eventTypeCode": ["AWS_RDS_CONNECTIVITY_ISSUE", "AWS_RDS_OPERATIONAL_ISSUE", "AWS_RDS_API_ISSUE", "AWS_RDS_STORAGE_FAILURE_MAZ", "AWS_RDS_STORAGE_FAILURE_SAZ", "AWS_RDS_STORAGE_FAILURE_READREPLICA", "AWS_RDS_STORAGE_FAILURE_DB_CORRUPTION", "AWS_RDS_INCREASED_CREATE_SCALING_LATENCIES"]
+            }
+          }
+      Targets: 
+        - Id: 'CloudWatchLogGroup_rds'
+          Arn: !GetAtt LogGroupAWSHealthRDS.Arn

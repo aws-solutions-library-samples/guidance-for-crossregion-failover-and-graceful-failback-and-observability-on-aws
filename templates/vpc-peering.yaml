@@ -1,0 +1,39 @@
+
+AWSTemplateFormatVersion: 2010-09-09
+
+# This peers VPCs in primary and secondary region.
+
+Parameters:
+  PeerRegion:
+    Type: String
+    Description: The peer region name
+  SecretName:
+    Type: String
+    Description: The secret name to use to store the VPC ID
+
+Resources:
+
+  VPCPeeringConnection:
+    Type: 'AWS::EC2::VPCPeeringConnection'
+    Properties:
+      VpcId: '{{resolve:secretsmanager:vpc1}}'
+      PeerRegion: !Ref PeerRegion
+      PeerVpcId: '{{resolve:secretsmanager:vpc2}}'
+
+  VPCPeeringSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Ref SecretName
+      Description: !Ref SecretName
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref PeerRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref VPCPeeringConnection
+
+Outputs:
+  VPCPeeringConnection:
+    Description: The VPC Peering Connection
+    Value: !Ref VPCPeeringConnection
+    Export:
+      Name: !Sub "${AWS::StackName}-Connection"

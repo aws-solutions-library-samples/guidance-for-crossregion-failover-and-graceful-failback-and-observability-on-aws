@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+
+  Alias:
+    Type: String
+    Description: The alias name
+  BucketNamePrimary:
+    Type: String
+    Description: The bucket name
+  BucketNameSecondary:
+    Type: String
+    Description: The bucket name
+  RegionName:
+    Type: String
+    Description: The bucket name
+  BackupRegion:
+    Type: String
+    Description: The bucket name
+  WebACLName:
+    Type: String
+    Description: The web ACL name
+  CertificateArn:
+    Type: String
+    Description: The certificate ARN
+
+Resources:
+
+  PrimaryS3BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Metadata:
+      Comment: 'Bucket policy to allow cloudfront to access the data'
+    Properties:
+      Bucket: !Ref BucketNamePrimary
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetObject'
+            Effect: 'Allow'
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Resource:
+              - !Sub 'arn:aws:s3:::${BucketNamePrimary}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
+
+  SecondaryS3BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Metadata:
+      Comment: 'Bucket policy to allow cloudfront to access the data'
+    Properties:
+      Bucket: !Ref BucketNameSecondary
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetObject'
+            Effect: 'Allow'
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Resource:
+              - !Sub 'arn:aws:s3:::${BucketNameSecondary}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}
+
+  CloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: remittance
+        Name: remittance
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Metadata:
+      Comment: 'A simple CloudFront distribution with an S3 origin'
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - !Ref Alias
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          MinimumProtocolVersion: TLSv1
+          SslSupportMethod: sni-only
+        WebACLId: !GetAtt WebACL.Arn
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - 'HEAD'
+            - 'GET'
+          CachedMethods:
+            - 'HEAD'
+            - 'GET'
+          Compress: false
+          DefaultTTL: 86400
+          ForwardedValues:
+            Cookies:
+              Forward: 'none'
+            Headers:
+              - 'Origin'
+            QueryString: false
+          MaxTTL: 31536000
+          MinTTL: 1
+          TargetOriginId: !Sub 's3-origin-${BucketNamePrimary}'
+          ViewerProtocolPolicy: 'redirect-to-https'
+        DefaultRootObject: 'index.html'
+        Enabled: true
+        HttpVersion: 'http1.1'
+        IPV6Enabled: false
+        Origins:
+          - DomainName: '{{resolve:secretsmanager:cloudfront-primary-bucket-domain-name}}'
+            Id: !Sub 's3-origin-${BucketNamePrimary}'
+            OriginPath: ''
+            ConnectionTimeout: 5
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !GetAtt CloudFrontOriginAccessControl.Id
+          - DomainName: '{{resolve:secretsmanager:cloudfront-secondary-bucket-domain-name}}'
+            Id: !Sub 's3-origin-${BucketNameSecondary}'
+            OriginPath: ''
+            ConnectionTimeout: 5
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !GetAtt CloudFrontOriginAccessControl.Id
+        PriceClass: 'PriceClass_All'
+        OriginGroups:
+          Quantity: 1
+          Items:
+            - Id: "remittance-origin-group"
+              FailoverCriteria:
+                StatusCodes:
+                  Quantity: 8
+                  Items:
+                    - 400
+                    - 403
+                    - 404
+                    - 416
+                    - 500
+                    - 502
+                    - 503
+                    - 504
+              Members:
+                Quantity: 2
+                Items:
+                  - OriginId: !Sub 's3-origin-${BucketNamePrimary}'
+                  - OriginId: !Sub 's3-origin-${BucketNameSecondary}'
+
+  WebACL:
+    Type: 'AWS::WAFv2::WebACL'
+    Properties:
+      Name: !Ref WebACLName
+      Scope: CLOUDFRONT
+      Description: This WebACL protects
+      DefaultAction:
+        Allow : {}
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub '${WebACLName}-Metric'
+      Rules:
+        - Name: AWSManagedRulesKnownBadInputsRuleSet
+          Priority: 1
+          OverrideAction:
+            Count: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub  '${WebACLName}-Metric-Rule1'
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+
+  CloudfrontDomainNameSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "cloudfront-${RegionName}-domain-name"
+      Description: !Sub "cloudfront-${RegionName}-domain-name"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt CloudFrontDistribution.DomainName
+
+  CloudfrontWAFSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "cloudfront-${RegionName}-waf"
+      Description: !Sub "cloudfront-${RegionName}-waf"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref WebACL
+
+Outputs:
+
+  CloudFrontDistributionId:
+    Description: 'Id for our cloudfront distribution'
+    Value: !Ref CloudFrontDistribution
+  CloudFrontDistributionDomainName:
+    Description: 'Domain name for our cloudfront distribution'
+    Value: !GetAtt CloudFrontDistribution.DomainName
+  CloudFrontWebACLReference:
+    Description: 'Cloudfront Web ACL reference'
+    Value: !Ref WebACL

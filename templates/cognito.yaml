@@ -1,0 +1,287 @@
+
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  UserEmail:
+    Type: String
+    Description: Test user's email
+  UserPoolName:
+    Type: String
+    Description: The user pool name
+  IdentityPoolName:
+    Type: String
+    Description: The identity pool name
+  AuthDomainParam:
+    Type: String
+    Description: Cognito auth domain
+  BackupRegion:
+    Type: String
+    Description: The Backup Region Name
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Ref UserPoolName
+      UsernameConfiguration:
+        CaseSensitive: false
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireSymbols: false
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 1
+      UsernameAttributes:
+        - email
+      MfaConfiguration: "OFF"
+      Schema:
+        - AttributeDataType: String
+          DeveloperOnlyAttribute: false
+          Mutable: true
+          Name: email
+  AdminUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      UserPoolId: !Ref UserPool
+      Username: !Ref UserEmail
+      UserAttributes:
+        - Name: email
+          Value: !Ref UserEmail
+  ServerAppClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: ServerClient
+      GenerateSecret: true
+      RefreshTokenValidity: 30
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      CallbackURLs:
+        - 'https://{{resolve:secretsmanager:cloudfront-primary-domain-name}}'
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+      AllowedOAuthFlowsUserPoolClient: true
+      PreventUserExistenceErrors: ENABLED
+      SupportedIdentityProviders:
+        - COGNITO
+  ClientAppClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref UserPool
+      ClientName: ClientApp
+      GenerateSecret: false
+      RefreshTokenValidity: 30
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      CallbackURLs:
+        - 'https://{{resolve:secretsmanager:cloudfront-primary-domain-name}}'
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+        - aws.cognito.signin.user.admin
+      AllowedOAuthFlowsUserPoolClient: true
+      PreventUserExistenceErrors: ENABLED
+      SupportedIdentityProviders:
+        - COGNITO
+  AuthDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      UserPoolId: !Ref UserPool
+      Domain: !Ref AuthDomainParam
+
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub IdentityPoolName
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref ClientAppClient
+          ProviderName: !GetAtt UserPool.ProviderName
+
+  CognitoAuthorizedRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Federated: "cognito-identity.amazonaws.com"
+            Action:
+              - "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": authenticated
+      Policies:
+        - PolicyName: "CognitoAuthorizedPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "cognito-sync:*"
+                  - "cognito-identity:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "execute-api:Invoke"
+                Resource: "*"
+
+  IdentityPoolRoleMapping:
+    Type: "AWS::Cognito::IdentityPoolRoleAttachment"
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt CognitoAuthorizedRole.Arn
+
+  UserPoolIDSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: cognito-user-pool-id
+      Description: cognito-user-pool-id
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref UserPool
+
+  UserPoolIDParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/cognito/user-pool-id
+      Type: String
+      Value: !Ref UserPool
+      Description: Cognito User Pool ID
+
+  UserPoolArnSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: cognito-user-pool-arn
+      Description: cognito-user-pool-arn
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt UserPool.Arn
+
+  UserPoolArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/cognito/user-pool-arn
+      Type: String
+      Value: !GetAtt UserPool.Arn
+      Description: Cognito User Pool ARN
+
+  UserPoolURLSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: cognito-user-pool-url
+      Description: cognito-user-pool-url
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt UserPool.ProviderURL
+
+  UserPoolURLParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/cognito/user-pool-url
+      Type: String
+      Value: !GetAtt UserPool.ProviderURL
+      Description: Cognito User Pool Provider URL
+
+  ServerAppClientSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: cognito-server-app-client
+      Description: cognito-server-app-client
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref ServerAppClient
+
+  ServerAppClientParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/cognito/server-app-client
+      Type: String
+      Value: !Ref ServerAppClient
+      Description: Cognito Server App Client
+
+  ClientAppClientSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: cognito-client-app-client
+      Description: cognito-client-app-client
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref ClientAppClient
+
+  AppClientParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/cognito/app-client
+      Type: String
+      Value: !Ref ClientAppClient
+      Description: Cognito App Client
+
+  IdentityPoolIDSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: cognito-identity-pool-id
+      Description: cognito-identity-pool-id
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref IdentityPool
+
+  IdentityPoolIDParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/cognito/identity-pool-id
+      Type: String
+      Value: !Ref IdentityPool
+      Description: Cognito Identity Pool ID
+
+Outputs:
+  UserPoolId:
+    Description: The user pool ID
+    Value: !Ref UserPool
+  UserPoolArn:
+    Description: The user pool ARN
+    Value: !GetAtt UserPool.Arn
+  UserPoolUrl:
+    Description: URL of the Cognito provider
+    Value: !GetAtt UserPool.ProviderURL
+  AdminUser:
+    Description: The admin user name
+    Value: !Ref AdminUser
+  ServerAppClient:
+    Description: The server app client ID
+    Value: !Ref ServerAppClient
+  ClientAppClient:
+    Description: The client app client ID
+    Value: !Ref ClientAppClient
+  IdentityPoolId:
+    Description: The identity pool ID
+    Value: !Ref IdentityPool

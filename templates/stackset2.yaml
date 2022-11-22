@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  ENV:
+    Type: String
+    Description: The environment variable
+  PrimaryRegion:
+    Type: String
+    Description: The primary region
+  SecondaryRegion:
+    Type: String
+    Description: The secondary region
+  DomainName:
+    Type: String
+    Description: The domain Name
+  UIDomainName:
+    Type: String
+    Description: The UI domain Name
+  PrimaryCloudFrontBucketName:
+    Type: String
+    Description: The primary cloud front bucket name
+  SecondaryCloudFrontBucketName:
+    Type: String
+    Description: The secondary cloud front bucket name
+  WebACLName:
+    Type: String
+    Description: The web ACL name
+  UserEmail:
+    Type: String
+    Description: The user email
+
+Resources:
+
+  AcmCertificateDomain:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: '{{resolve:secretsmanager:remittance-hosted-zone}}'
+      ValidationMethod: 'DNS'
+
+  AcmCertificateUIDomain:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref UIDomainName
+      DomainValidationOptions:
+        - DomainName: !Ref UIDomainName
+          HostedZoneId: '{{resolve:secretsmanager:remittance-ui-hosted-zone}}'
+      ValidationMethod: 'DNS'
+
+  CloudFront:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: CloudFrontPrimary
+      Description: CloudFrontPrimary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: Alias
+          ParameterValue: !Ref UIDomainName
+        - ParameterKey: BucketNamePrimary
+          ParameterValue: !Ref PrimaryCloudFrontBucketName
+        - ParameterKey: BucketNameSecondary
+          ParameterValue: !Ref SecondaryCloudFrontBucketName
+        - ParameterKey: RegionName
+          ParameterValue: primary
+        - ParameterKey: BackupRegion
+          ParameterValue: !Ref SecondaryRegion
+        - ParameterKey: WebACLName
+          ParameterValue: !Sub '${WebACLName}-primary'
+        - ParameterKey: CertificateArn
+          ParameterValue: !Ref AcmCertificateUIDomain
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/cloudfront.yaml'
+
+  Cognito:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn:
+      - CloudFront
+    Properties:
+      StackSetName: CognitoPrimary
+      Description: CognitoPrimary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: UserEmail
+          ParameterValue: !Ref UserEmail
+        - ParameterKey: UserPoolName
+          ParameterValue: remittance
+        - ParameterKey: IdentityPoolName
+          ParameterValue: remittance
+        - ParameterKey: AuthDomainParam
+          ParameterValue: remittance
+        - ParameterKey: BackupRegion
+          ParameterValue: !Ref SecondaryRegion
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/cognito.yaml'

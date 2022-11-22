@@ -1,0 +1,459 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+# This CloudFormation template deploys a basic VPC / Network.  Specifically:
+# It deploys a VPC with 6 subnets (3 public, 3 private) across 3 Availability Zones
+# A NAT Gateway is used to provide egress for private subnets.
+# The VPC and subnets are exported for use by other stacks.
+
+Parameters:
+  Name:
+    Type: String
+    Description: The VPC name
+  Region:
+    Type: String
+    Description: The region name
+  BackupRegion:
+    Type: String
+    Description: The backup region name
+  CIDR:
+    Type: String
+    Description: The VPC CIDR range
+  PrivateSubnet1CIDR:
+    Type: String
+    Description: The private subnet1 CIDR range
+  PrivateSubnet2CIDR:
+    Type: String
+    Description: The private subnet2 CIDR range
+  PrivateSubnet3CIDR:
+    Type: String
+    Description: The private subnet3 CIDR range
+  PublicSubnet1CIDR:
+    Type: String
+    Description: The public subnet1 CIDR range
+  PublicSubnet2CIDR:
+    Type: String
+    Description: The public subnet2 CIDR range
+  PublicSubnet3CIDR:
+    Type: String
+    Description: The public subnet3 CIDR range
+  SecretName:
+    Type: String
+    Description: The secret name to use to store the VPC ID
+
+Resources:
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value:  !Ref Name
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    DependsOn: VPC
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${Name}-internet-gateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      AvailabilityZone: !Select [ 0, Fn::GetAZs: !Ref Region]
+      Tags:
+        - Key: Name
+          Value: !Sub ${Name}-private-subnet-1
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      AvailabilityZone: !Select [ 1, Fn::GetAZs: !Ref Region ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${Name}-private-subnet-2
+
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet3CIDR
+      AvailabilityZone: !Select [ 2, Fn::GetAZs: !Ref Region ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${Name}-private-subnet-3
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1CIDR
+      AvailabilityZone: !Select [ 0, Fn::GetAZs: !Ref Region ]
+      Tags:
+      - Key: Name
+        Value: !Sub ${Name}-public-subnet-1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2CIDR
+      AvailabilityZone: !Select [ 1, Fn::GetAZs: !Ref Region ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${Name}-public-subnet-2
+
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet3CIDR
+      AvailabilityZone: !Select [ 2, Fn::GetAZs: !Ref Region ]
+      Tags:
+        - Key: Name
+          Value: !Sub ${Name}-public-subnet-3
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub ${Name}-private-route-table
+
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Name}-public-route-table
+
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet3
+      RouteTableId: !Ref PrivateRouteTable
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet3RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet3
+      RouteTableId: !Ref PublicRouteTable
+
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt ElasticIPAddress.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+      - Key: Name
+        Value: !Sub ${Name}-nat-gateway
+
+  ElasticIPAddress:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${Name}-nat-gateway-elastic-ip
+
+  EndpointS3:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+
+  EndpointSSM:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+
+  EndpointSecretsManager:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.secretsmanager'
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+
+  EndpointRDS:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.rds'
+      VpcId: !Ref VPC
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+
+  VPCSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Ref SecretName
+      Description: !Ref SecretName
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt VPC.VpcId
+
+  PrivateSubnet1Secret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "${SecretName}-private-subnet-1"
+      Description: !Sub "${SecretName}-private-subnet-1"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt PrivateSubnet1.SubnetId
+
+  PrivateSubnet2Secret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "${SecretName}-private-subnet-2"
+      Description: !Sub "${SecretName}-private-subnet-2"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt PrivateSubnet2.SubnetId
+
+  PrivateSubnet3Secret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "${SecretName}-private-subnet-3"
+      Description: !Sub "${SecretName}-private-subnet-3"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt PrivateSubnet3.SubnetId
+
+  PublicSubnet1Secret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "${SecretName}-public-subnet-1"
+      Description: !Sub "${SecretName}-public-subnet-1"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt PublicSubnet1.SubnetId
+
+  PublicSubnet2Secret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "${SecretName}-public-subnet-2"
+      Description: !Sub "${SecretName}-public-subnet-2"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt PublicSubnet2.SubnetId
+
+  PublicSubnet3Secret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "${SecretName}-public-subnet-3"
+      Description: !Sub "${SecretName}-public-subnet-3"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt PublicSubnet3.SubnetId
+
+  PublicRouteTableSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "${SecretName}-public-route-table"
+      Description: !Sub "${SecretName}-public-route-table"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref PublicRouteTable
+
+  PrivateRouteTableSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "${SecretName}-private-route-table"
+      Description: !Sub "${SecretName}-private-route-table"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref PrivateRouteTable
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Access to lambda
+      SecurityGroupIngress:
+        - FromPort: 80
+          ToPort: 80
+          IpProtocol: tcp
+          CidrIp: !Ref CIDR
+        - FromPort: 443
+          ToPort: 443
+          IpProtocol: tcp
+          CidrIp: !Ref CIDR
+      SecurityGroupEgress:
+        - FromPort: 0
+          ToPort: 65535
+          IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: 'remittance-lambda-security-group'
+
+  AuroraSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Access to aurora
+      SecurityGroupIngress:
+        - FromPort: 5432
+          ToPort: 5432
+          IpProtocol: tcp
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+      SecurityGroupEgress:
+        - FromPort: 0
+          ToPort: 65535
+          IpProtocol: tcp
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: 'remittance-aurora-security-group'
+
+  LambdaSecurityGroupParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/lambda-security-group
+      Type: String
+      Value: !Ref LambdaSecurityGroup
+      Description: Lambda security group ID
+
+  AuroraSecurityGroupParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/aurora-security-group
+      Type: String
+      Value: !Ref AuroraSecurityGroup
+      Description: Aurora security group ID
+
+Outputs:
+  VPCId:
+    Description: The VPC Id
+    Value: !GetAtt VPC.VpcId
+    Export:
+      Name: !Sub "${AWS::StackName}-VPCId"
+  PrivateSubnet1Id:
+    Description: The private subnet 1 id
+    Value: !GetAtt PrivateSubnet1.SubnetId
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnet1Id"
+  PrivateSubnet2Id:
+    Description: The private subnet 2 id
+    Value: !GetAtt PrivateSubnet2.SubnetId
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnet2Id"
+  PrivateSubnet3Id:
+    Description: The private subnet 3 id
+    Value: !GetAtt PrivateSubnet3.SubnetId
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateSubnet3Id"
+  PublicSubnet1Id:
+    Description: The public subnet 1 id
+    Value: !GetAtt PublicSubnet1.SubnetId
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnet1Id"
+  PublicSubnet2Id:
+    Description: The public subnet 2 id
+    Value: !GetAtt PublicSubnet2.SubnetId
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnet2Id"
+  PublicSubnet3Id:
+    Description: The public subnet 3 id
+    Value: !GetAtt PublicSubnet3.SubnetId
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicSubnet3Id"
+  PublicRouteTableId:
+    Description: The public route table id
+    Value: !Ref PublicRouteTable
+    Export:
+      Name: !Sub "${AWS::StackName}-PublicRouteTableId"
+  PrivateRouteTableId:
+    Description: The public route table id
+    Value: !Ref PrivateRouteTable
+    Export:
+      Name: !Sub "${AWS::StackName}-PrivateRouteTableId"

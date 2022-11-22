@@ -1,0 +1,931 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+
+Parameters:
+  VpcId:
+    Type: String
+    Description: The VPC ID
+  PrivateSubnet1Id:
+    Type: String
+    Description: The private subnet 1 ID
+  PrivateSubnet2Id:
+    Type: String
+    Description: The private subnet 2 ID
+  PrivateSubnet3Id:
+    Type: String
+    Description: The private subnet 3 ID
+  SourceBucket:
+    Type: String
+  LambdaLayerBucketName:
+    Type: String
+  UserPoolArn:
+    Type: String
+  DomainName:
+    Type: String
+    Description: The domain name
+  DomainSecretName:
+    Type: String
+    Description: The domain secret name
+  HostedZoneSecretName:
+    Type: String
+    Description: The hosted zone secret name
+  BackupRegion:
+    Type: String
+    Description: The back up region
+Resources:
+  LambdaLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - python3.8
+      Content:
+        S3Bucket: !Ref LambdaLayerBucketName
+        S3Key: python.zip
+      Description: Psycopg2 Library
+      LayerName: psycopg2
+      LicenseInfo: MIT
+  CreateRemittanceTableLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - LambdaLayer
+    Properties:
+      FunctionName: CreateRemittanceTable
+      Handler: api.create_remittance_table
+      Runtime: python3.8
+      Role: !GetAtt LambdaFunctionRole.Arn
+      MemorySize: 1024
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - '{{resolve:ssm:/crf/lambda-security-group}}'
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+          - !Ref PrivateSubnet3Id
+      Code:
+        S3Bucket: !Ref SourceBucket
+        S3Key: database.zip
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:21"
+        - !Ref LambdaLayer
+      TracingConfig:
+        Mode: Active
+  DropRemittanceTableLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - LambdaLayer
+    Properties:
+      FunctionName: DropRemittanceTable
+      Handler: api.drop_remittance_table
+      Runtime: python3.8
+      Role: !GetAtt LambdaFunctionRole.Arn
+      MemorySize: 1024
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - '{{resolve:ssm:/crf/lambda-security-group}}'
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+          - !Ref PrivateSubnet3Id
+      Code:
+        S3Bucket: !Ref SourceBucket
+        S3Key: database.zip
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:21"
+        - !Ref LambdaLayer
+      TracingConfig:
+        Mode: Active
+  GetRemittancesLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - LambdaLayer
+    Properties:
+      FunctionName: GetRemittances
+      Handler: api.get_remittances
+      Runtime: python3.8
+      Role: !GetAtt LambdaFunctionRole.Arn
+      MemorySize: 1024
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - '{{resolve:ssm:/crf/lambda-security-group}}'
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+          - !Ref PrivateSubnet3Id
+      Code:
+        S3Bucket: !Ref SourceBucket
+        S3Key: database.zip
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:21"
+        - !Ref LambdaLayer
+      TracingConfig:
+        Mode: Active
+  CreateRemittanceLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - LambdaLayer
+    Properties:
+      FunctionName: CreateRemittance
+      Handler: api.create_remittance
+      Runtime: python3.8
+      Role: !GetAtt LambdaFunctionRole.Arn
+      MemorySize: 1024
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - '{{resolve:ssm:/crf/lambda-security-group}}'
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+          - !Ref PrivateSubnet3Id
+      Code:
+        S3Bucket: !Ref SourceBucket
+        S3Key: database.zip
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:21"
+        - !Ref LambdaLayer
+      TracingConfig:
+        Mode: Active
+  UpdateRemittanceLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - LambdaLayer
+    Properties:
+      FunctionName: UpdateRemittance
+      Handler: api.update_remittance
+      Runtime: python3.8
+      Role: !GetAtt LambdaFunctionRole.Arn
+      MemorySize: 1024
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - '{{resolve:ssm:/crf/lambda-security-group}}'
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+          - !Ref PrivateSubnet3Id
+      Code:
+        S3Bucket: !Ref SourceBucket
+        S3Key: database.zip
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:21"
+        - !Ref LambdaLayer
+      TracingConfig:
+        Mode: Active
+  DeleteRemittanceLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - LambdaLayer
+    Properties:
+      FunctionName: DeleteRemittance
+      Handler: api.delete_remittance
+      Runtime: python3.8
+      Role: !GetAtt LambdaFunctionRole.Arn
+      MemorySize: 1024
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - '{{resolve:ssm:/crf/lambda-security-group}}'
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+          - !Ref PrivateSubnet3Id
+      Code:
+        S3Bucket: !Ref SourceBucket
+        S3Key: database.zip
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:21"
+        - !Ref LambdaLayer
+      TracingConfig:
+        Mode: Active
+  ClearRemittancesLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - LambdaLayer
+    Properties:
+      FunctionName: ClearRemittances
+      Handler: api.clear_remittances
+      Runtime: python3.8
+      Role: !GetAtt LambdaFunctionRole.Arn
+      MemorySize: 1024
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - '{{resolve:ssm:/crf/lambda-security-group}}'
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+          - !Ref PrivateSubnet3Id
+      Code:
+        S3Bucket: !Ref SourceBucket
+        S3Key: database.zip
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:21"
+        - !Ref LambdaLayer
+      TracingConfig:
+        Mode: Active
+  ExecuteRunbookLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    DependsOn:
+      - LambdaLayer
+    Properties:
+      FunctionName: ExecuteRunbook
+      Handler: api.execute_runbook
+      Runtime: python3.8
+      Role: !GetAtt LambdaFunctionRole.Arn
+      MemorySize: 1024
+      Timeout: 900
+      VpcConfig:
+        SecurityGroupIds:
+          - '{{resolve:ssm:/crf/lambda-security-group}}'
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+          - !Ref PrivateSubnet3Id
+      Code:
+        S3Bucket: !Ref SourceBucket
+        S3Key: database.zip
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:21"
+        - !Ref LambdaLayer
+      TracingConfig:
+        Mode: Active
+  LambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: AppendToLogsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+        - PolicyName: VPCDeploymentPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeInstances
+                  - ec2:AttachNetworkInterface
+                Resource: "*"
+        - PolicyName: SecretManagerPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: "*"
+        - PolicyName: XRayTracePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                Resource: "*"
+        - PolicyName: SSMDocumentPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:StartAutomationExecution
+                Resource: "*"
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: Remittance
+      Description: Remittance
+      ApiKeySourceType: HEADER
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  CognitoAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      IdentitySource: method.request.header.authorization
+      Name: CognitoAuthorizer
+      ProviderARNs:
+        - !Ref UserPoolArn
+      RestApiId: !Ref ApiGateway
+      Type: COGNITO_USER_POOLS
+
+  ResourceCreateRemittanceTable:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: create-remittance-table
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodCreateRemittanceTable:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      HttpMethod: POST
+      ApiKeyRequired: false
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Credentials: !GetAtt ApiGatewayRole.Arn
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt CreateRemittanceTableLambdaFunction.Arn
+      ResourceId: !Ref ResourceCreateRemittanceTable
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodCreateRemittanceTableOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResourceCreateRemittanceTable
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+
+  ResourceDropRemittanceTable:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: drop-remittance-table
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodDropRemittanceTable:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      HttpMethod: POST
+      ApiKeyRequired: false
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Credentials: !GetAtt ApiGatewayRole.Arn
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt DropRemittanceTableLambdaFunction.Arn
+      ResourceId: !Ref ResourceDropRemittanceTable
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodDropRemittanceTableOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResourceDropRemittanceTable
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+
+  ResourceGetRemittances:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: get-remittances
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodGetRemittances:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      HttpMethod: GET
+      ApiKeyRequired: false
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Credentials: !GetAtt ApiGatewayRole.Arn
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt GetRemittancesLambdaFunction.Arn
+      ResourceId: !Ref ResourceGetRemittances
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodGetRemittancesOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResourceGetRemittances
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+
+  ResourceCreateRemittance:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: create-remittance
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodCreateRemittance:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      HttpMethod: POST
+      ApiKeyRequired: false
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Credentials: !GetAtt ApiGatewayRole.Arn
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt CreateRemittanceLambdaFunction.Arn
+      ResourceId: !Ref ResourceCreateRemittance
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodCreateRemittanceOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResourceCreateRemittance
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+
+  ResourceUpdateRemittance:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: update-remittance
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodUpdateRemittance:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      HttpMethod: POST
+      ApiKeyRequired: false
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Credentials: !GetAtt ApiGatewayRole.Arn
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt UpdateRemittanceLambdaFunction.Arn
+      ResourceId: !Ref ResourceUpdateRemittance
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodUpdateRemittanceOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResourceUpdateRemittance
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+
+  ResourceDeleteRemittance:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: delete-remittance
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodDeleteRemittance:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      HttpMethod: POST
+      ApiKeyRequired: false
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Credentials: !GetAtt ApiGatewayRole.Arn
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt DeleteRemittanceLambdaFunction.Arn
+      ResourceId: !Ref ResourceDeleteRemittance
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodDeleteRemittanceOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResourceDeleteRemittance
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+
+  ResourceClearRemittances:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: clear-remittances
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodClearRemittances:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      HttpMethod: POST
+      ApiKeyRequired: false
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Credentials: !GetAtt ApiGatewayRole.Arn
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt ClearRemittancesLambdaFunction.Arn
+      ResourceId: !Ref ResourceClearRemittances
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodClearRemittancesOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResourceClearRemittances
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+
+  ResourceExecuteRunbook:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: execute-runbook
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodExecuteRunbook:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      HttpMethod: POST
+      ApiKeyRequired: false
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Credentials: !GetAtt ApiGatewayRole.Arn
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - LambdaArn: !GetAtt ExecuteRunbookLambdaFunction.Arn
+      ResourceId: !Ref ResourceExecuteRunbook
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayMethodExecuteRunbookOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ResourceExecuteRunbook
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayMethodCreateRemittanceTable
+      - ApiGatewayMethodDropRemittanceTable
+      - ApiGatewayMethodGetRemittances
+      - ApiGatewayMethodCreateRemittance
+      - ApiGatewayMethodUpdateRemittance
+      - ApiGatewayMethodDeleteRemittance
+      - ApiGatewayMethodClearRemittances
+      - ApiGatewayMethodExecuteRunbook
+    Properties:
+      RestApiId: !Ref ApiGateway
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    DependsOn:
+      - ApiGwAccountConfig
+    Properties:
+      DeploymentId: !Ref ApiGatewayDeployment
+      MethodSettings:
+        - HttpMethod: '*'
+          LoggingLevel: INFO
+          ResourcePath: /*
+          DataTraceEnabled: true
+      RestApiId: !Ref ApiGateway
+      StageName: dev
+      TracingEnabled: true
+
+  ApiGwAccountConfig:
+    Type: "AWS::ApiGateway::Account"
+    Properties:
+      CloudWatchRoleArn: !GetAtt "ApiGatewayLoggingRole.Arn"
+
+  ApiGatewayLoggingRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ''
+            Effect: 'Allow'
+            Principal:
+              Service:
+                - 'apigateway.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: LambdaAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action: 'lambda:InvokeFunction'
+                Resource: '*'
+
+  APIURLParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/api/database/url
+      Type: String
+      Value: !Sub
+        - https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${StageName}
+        - ApiId: !Ref ApiGateway
+          StageName: !Ref ApiStage
+      Description: Databae API URL
+
+  AcmCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: '{{resolve:secretsmanager:remittance-hosted-zone}}'
+      ValidationMethod: 'DNS'
+
+  ApiGWCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Ref DomainName
+      RegionalCertificateArn: !Ref AcmCertificate
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      SecurityPolicy: TLS_1_2
+
+  APIMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    DependsOn:
+      - ApiStage
+      - ApiGWCustomDomain
+    Properties:
+      DomainName: !Ref DomainName
+      RestApiId: !Ref ApiGateway
+      Stage: dev
+
+  APIDomainParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/api/database/domain
+      Type: String
+      Value: !GetAtt ApiGWCustomDomain.RegionalDomainName
+      Description: Databae API Domain
+
+  APIDomainSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Ref DomainSecretName
+      Description: !Ref DomainSecretName
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt ApiGWCustomDomain.RegionalDomainName
+
+  APIHostedZoneParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/api/database/hosted-zone
+      Type: String
+      Value: !GetAtt ApiGWCustomDomain.RegionalHostedZoneId
+      Description: Databae API Hosted Zone
+
+  APIHostedZoneSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Ref HostedZoneSecretName
+      Description: !Ref HostedZoneSecretName
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !GetAtt ApiGWCustomDomain.RegionalHostedZoneId
+
+Outputs:
+  ApiId:
+    Description: API ID
+    Value: !Ref ApiGateway
+    Export:
+      Name: !Sub "${AWS::StackName}-API-ID"
+  ApiUrl:
+    Description: API URL
+    Value: !Sub
+      - https://${ApiId}.execute-api.${AWS::Region}.amazonaws.com/${StageName}
+      - ApiId: !Ref ApiGateway
+        StageName: !Ref ApiStage
+    Export:
+      Name: !Sub "${AWS::StackName}-API-URL"

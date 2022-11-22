@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  DomainName:
+    Type: String
+    Description: Domain Name
+  APIDomain1:
+    Type: String
+    Description: API Domain for Region 1
+  APIHostedZone1:
+    Type: String
+    Description: API Hosted Zone for Region 1
+  APIDomain2:
+    Type: String
+    Description: API Domain for Region 2
+  APIHostedZone2:
+    Type: String
+    Description: API Hosted Zone for Region 2
+  HostedZone:
+    Type: String
+    Description: Hosted Zone
+  HealthCheck1:
+    Type: String
+    Description: Health Check 1
+  HealthCheck2:
+    Type: String
+    Description: Health Check 2
+
+Resources:
+
+  RecordSetPrimary:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Ref DomainName
+      Failover: PRIMARY
+      HostedZoneId: !Ref HostedZone
+      SetIdentifier: Primary
+      Type: A
+      AliasTarget:
+        DNSName: !Ref APIDomain1
+        HostedZoneId: !Ref APIHostedZone1
+        EvaluateTargetHealth: true
+      HealthCheckId: !Ref HealthCheck1
+
+  RecordSetSecondary:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Ref DomainName
+      Failover: SECONDARY
+      HostedZoneId: !Ref HostedZone
+      SetIdentifier: Secondary
+      Type: A
+      AliasTarget:
+        DNSName: !Ref APIDomain2
+        HostedZoneId: !Ref APIHostedZone2
+        EvaluateTargetHealth: true
+      HealthCheckId: !Ref HealthCheck2
+
+

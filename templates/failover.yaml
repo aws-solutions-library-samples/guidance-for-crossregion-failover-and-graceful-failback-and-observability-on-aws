@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation template IAM Roles for Systems Manager | Automation Service
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: The bucket name
+  Checksum:
+    Type: String
+    Description: The checksum
+
+Resources:
+
+  AutomationServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ssm.amazonaws.com
+            - ec2.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonSSMAutomationRole
+      Path: "/"
+      RoleName: AutomationServiceRole
+      Policies:
+      - PolicyName: passrole
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+              - 'iam:PassRole'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'rds:*'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'secretsmanager:*'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'route53-recovery-control-config:*'
+            Resource: '*'
+          - Effect: Allow
+            Action:
+              - 'route53-recovery-cluster:*'
+            Resource: '*'
+
+  FailoverRunbook:
+    Type: AWS::SSM::Document
+    DependsOn:
+      - AutomationServiceRole
+    Properties:
+      Name: 'FailoverRunbook'
+      DocumentType: Automation
+      DocumentFormat: YAML
+      Attachments:
+        - Key: S3FileUrl
+          Name: rotation.py
+          Values:
+            - !Sub 'https://${BucketName}.s3.amazonaws.com/rotation.zip'
+      Content:
+        description: |-
+          *Runbook for Remittance Application Failover*
+
+          ---
+          # Runbook for Remittance Application Failover
+
+          1. Get Regions
+          2. Rotate Arc Controls
+          3. Failover Aurora Global Database
+          4. Wait For Aurora Global Failover
+          5. Update Database Secret
+        schemaVersion: '0.3'
+        assumeRole: !Sub 'arn:aws:iam::${AWS::AccountId}:role/AutomationServiceRole'
+        mainSteps:
+          - name: GetRegions
+            action: 'aws:executeScript'
+            inputs:
+              Runtime: python3.8
+              Handler: rotation.invoke
+              Script: ''
+              InputPayload:
+                FUNCTION: get_regions
+                AWS_REGION: us-east-1
+                AWS_REGION1: us-east-1
+                AWS_REGION2: us-west-2
+              Attachment: rotation.py
+            outputs:
+              - Name: ACTIVE_REGION
+                Selector: $.Payload.active_region
+                Type: String
+              - Name: PASSIVE_REGION
+                Selector: $.Payload.passive_region
+                Type: String
+          - name: RotateArcControls
+            action: 'aws:executeScript'
+            inputs:
+              Runtime: python3.8
+              Handler: rotation.invoke
+              Script: ''
+              InputPayload:
+                FUNCTION: rotate_arc_controls
+                AWS_REGION: '{{GetRegions.ACTIVE_REGION}}'
+              Attachment: rotation.py
+          - name: FailoverAuroraGlobalDatabase
+            action: 'aws:executeScript'
+            inputs:
+              Runtime: python3.8
+              Handler: rotation.invoke
+              Script: ''
+              InputPayload:
+                FUNCTION: rotate_aurora_global_database
+                AWS_REGION: '{{GetRegions.ACTIVE_REGION}}'
+              Attachment: rotation.py
+            outputs:
+              - Name: GLOBAL_CLUSTER
+                Selector: $.Payload.global_cluster
+                Type: String
+          - name: WaitForAuroraGlobalFailover
+            action: 'aws:executeScript'
+            inputs:
+              Runtime: python3.8
+              Handler: rotation.invoke
+              Script: ''
+              InputPayload:
+                FUNCTION: wait_for_aurora_to_be_available
+                AWS_REGION: '{{GetRegions.ACTIVE_REGION}}'
+              Attachment: rotation.py
+          - name: UpdateDatabaseSecret
+            action: 'aws:executeScript'
+            inputs:
+              Runtime: python3.8
+              Handler: rotation.invoke
+              Script: ''
+              InputPayload:
+                FUNCTION: update_database_secret
+                AWS_REGION: '{{GetRegions.PASSIVE_REGION}}'
+              Attachment: rotation.py
+        files:
+          rotation.py:
+            checksums:
+              sha256: !Ref Checksum
+

@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  ENV:
+    Type: String
+    Description: The environment variable
+  PrimaryRegion:
+    Type: String
+    Description: The primary region
+  SecondaryRegion:
+    Type: String
+    Description: The secondary region
+  PrimaryLambdaBucketName:
+    Type: String
+  SecondaryLambdaBucketName:
+    Type: String
+  PrimaryLambdaLayerBucketName:
+    Type: String
+    Description: The primary lambda layer bucket name
+  SecondaryLambdaLayerBucketName:
+    Type: String
+    Description: The secondary lambda layer bucket names
+  DomainName:
+    Type: String
+    Description: The domain Name
+  UIDomainName:
+    Type: String
+    Description: The UI domain Name
+  DocumentBucketName:
+    Type: String
+    Description: The ssm document bucket name
+  Checksum:
+    Type: String
+    Description: The checksum
+
+Resources:
+
+  APIPrimary:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: APIPrimary
+      Description: APIPrimary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: VpcId
+          ParameterValue: '{{resolve:secretsmanager:vpc1}}'
+        - ParameterKey: PrivateSubnet1Id
+          ParameterValue: '{{resolve:secretsmanager:vpc1-private-subnet-1}}'
+        - ParameterKey: PrivateSubnet2Id
+          ParameterValue: '{{resolve:secretsmanager:vpc1-private-subnet-2}}'
+        - ParameterKey: PrivateSubnet3Id
+          ParameterValue: '{{resolve:secretsmanager:vpc1-private-subnet-3}}'
+        - ParameterKey: SourceBucket
+          ParameterValue: !Ref PrimaryLambdaBucketName
+        - ParameterKey: LambdaLayerBucketName
+          ParameterValue: !Ref PrimaryLambdaLayerBucketName
+        - ParameterKey: UserPoolArn
+          ParameterValue: '{{resolve:ssm:/crf/cognito/user-pool-arn}}'
+        - ParameterKey: DomainName
+          ParameterValue: !Ref DomainName
+        - ParameterKey: DomainSecretName
+          ParameterValue: api-domain-1
+        - ParameterKey: HostedZoneSecretName
+          ParameterValue: api-hosted-zone-1
+        - ParameterKey: BackupRegion
+          ParameterValue: !Ref SecondaryRegion
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/api.yaml'
+
+  APISecondary:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: APISecondary
+      Description: APISecondary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref SecondaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: VpcId
+          ParameterValue: '{{resolve:secretsmanager:vpc2}}'
+        - ParameterKey: PrivateSubnet1Id
+          ParameterValue: '{{resolve:secretsmanager:vpc2-private-subnet-1}}'
+        - ParameterKey: PrivateSubnet2Id
+          ParameterValue: '{{resolve:secretsmanager:vpc2-private-subnet-2}}'
+        - ParameterKey: PrivateSubnet3Id
+          ParameterValue: '{{resolve:secretsmanager:vpc2-private-subnet-3}}'
+        - ParameterKey: SourceBucket
+          ParameterValue: !Ref SecondaryLambdaBucketName
+        - ParameterKey: LambdaLayerBucketName
+          ParameterValue: !Ref SecondaryLambdaLayerBucketName
+        - ParameterKey: UserPoolArn
+          ParameterValue: '{{resolve:ssm:/crf/cognito/user-pool-arn}}'
+        - ParameterKey: DomainName
+          ParameterValue: !Ref DomainName
+        - ParameterKey: DomainSecretName
+          ParameterValue: api-domain-2
+        - ParameterKey: HostedZoneSecretName
+          ParameterValue: api-hosted-zone-2
+        - ParameterKey: BackupRegion
+          ParameterValue: !Ref PrimaryRegion
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/api.yaml'
+
+  APIRoute53Records:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn:
+      - APIPrimary
+      - APISecondary
+    Properties:
+      StackSetName: APIRoute53Records
+      Description: APIRoute53Records
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: DomainName
+          ParameterValue: !Ref DomainName
+        - ParameterKey: APIDomain1
+          ParameterValue: '{{resolve:secretsmanager:api-domain-1}}'
+        - ParameterKey: APIHostedZone1
+          ParameterValue: '{{resolve:secretsmanager:api-hosted-zone-1}}'
+        - ParameterKey: APIDomain2
+          ParameterValue: '{{resolve:secretsmanager:api-domain-2}}'
+        - ParameterKey: APIHostedZone2
+          ParameterValue: '{{resolve:secretsmanager:api-hosted-zone-2}}'
+        - ParameterKey: HostedZone
+          ParameterValue: '{{resolve:secretsmanager:remittance-hosted-zone}}'
+        - ParameterKey: HealthCheck1
+          ParameterValue: '{{resolve:secretsmanager:remittance-health-check-1}}'
+        - ParameterKey: HealthCheck2
+          ParameterValue: '{{resolve:secretsmanager:remittance-health-check-2}}'
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/route53-records.yaml'
+
+  UIRoute53Records:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn:
+      - APIPrimary
+      - APISecondary
+    Properties:
+      StackSetName: UIRoute53Records
+      Description: UIRoute53Records
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: DomainName
+          ParameterValue: !Ref UIDomainName
+        - ParameterKey: UIDomain1
+          ParameterValue: '{{resolve:secretsmanager:cloudfront-primary-domain-name}}'
+        - ParameterKey: UIHostedZone1
+          ParameterValue: Z2FDTNDATAQYW2
+        - ParameterKey: HostedZone
+          ParameterValue: '{{resolve:secretsmanager:remittance-ui-hosted-zone}}'
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/route53-ui-records.yaml'
+
+  FailoverDocument:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: FailoverDocument
+      Description: FailoverDocument
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: BucketName
+          ParameterValue: !Ref DocumentBucketName
+        - ParameterKey: Checksum
+          ParameterValue: !Ref Checksum
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/failover.yaml'
+
+  CloudwatchAlarms:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn:
+      - APIPrimary
+      - APISecondary
+    Properties:
+      StackSetName: CloudwatchAlarms
+      Description: CloudwatchAlarms
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/cloudwatch-alarms.yaml'
+
+  CloudwatchDashboard:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn: CloudwatchAlarms
+    Properties:
+      StackSetName: CloudwatchDashboard
+      Description: CloudwatchDashboard
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/cloudwatch-dashboard.yaml'
+
+  EventBridgeAWSHealth:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: EventBridgeAWSHealth
+      Description: EventBridgeAWSHealth
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/eventbridge-awshealth.yaml'

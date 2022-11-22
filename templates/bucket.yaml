@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: The bucket name
+
+Resources:
+
+  Bucket:
+    Type: 'AWS::S3::Bucket'
+    DependsOn:
+      - LoggingBucket
+    Metadata:
+      Comment: 'The bucket'
+    DeletionPolicy: 'Delete'
+    Properties:
+      AccessControl: 'Private'
+      BucketName: !Ref BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LoggingConfiguration:
+        DestinationBucketName: !Ref LoggingBucket
+        LogFilePrefix: bucket-logs/
+
+  LoggingBucket:
+    Type: 'AWS::S3::Bucket'
+    Metadata:
+      Comment: 'The logging bucket'
+    DeletionPolicy: 'Delete'
+    Properties:
+      AccessControl: LogDeliveryWrite
+      BucketName: !Sub
+        - ${BucketName}-log
+        - BucketName: !Ref BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+Outputs:
+
+  Name:
+    Description: 'The bucket name'
+    Value: !Ref Bucket
+
+  Arn:
+    Description: 'The bucket ARN'
+    Value: !GetAtt Bucket.Arn
+
+  DomainName:
+    Description: 'The bucket domain name'
+    Value: !GetAtt Bucket.DomainName
+
+  DualStackDomainName:
+    Description: 'The bucket dual stack domain name'
+    Value: !GetAtt Bucket.DualStackDomainName
+
+  RegionalDomainName:
+    Description: 'The bucket regional domain name'
+    Value: !GetAtt Bucket.RegionalDomainName
+
+  WebsiteURL:
+    Description: 'The bucket website URL'
+    Value: !GetAtt Bucket.WebsiteURL

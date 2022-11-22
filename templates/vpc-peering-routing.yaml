@@ -1,0 +1,34 @@
+
+AWSTemplateFormatVersion: 2010-09-09
+
+# This peers VPCs in primary and secondary region.
+
+Parameters:
+  PublicRouteTableID:
+    Type: String
+    Description: The public route table id
+  PrivateRouteTableID:
+    Type: String
+    Description: The private route table id
+  PeerCIDR:
+    Type: String
+    Description: The CIDR range for peer VPC
+  PeeringConnectionID:
+    Type: String
+    Description: The peering connection id
+
+Resources:
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTableID
+      DestinationCidrBlock: !Ref PeerCIDR
+      VpcPeeringConnectionId: !Ref PeeringConnectionID
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableID
+      DestinationCidrBlock: !Ref PeerCIDR
+      VpcPeeringConnectionId: !Ref PeeringConnectionID

@@ -1,0 +1,229 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::LanguageExtensions
+Parameters:
+  ProjectId:
+    Type: String
+    Description: Project Id
+  DomainName:
+    Type: String
+    Description: Domain Name
+  UIDomainName:
+    Type: String
+    Description: UI Domain Name
+  BackupRegion:
+    Type: String
+    Description: The Backup Region Name
+
+Resources:
+
+  Cluster:
+    Type: AWS::Route53RecoveryControl::Cluster
+    Properties:
+      Name: !Sub ${ProjectId}-Cluster
+
+  ArcClusterSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: arc-cluster
+      Description: arc-cluster
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref Cluster
+
+  ArcClusterParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/arc/cluster
+      Type: String
+      Value: !Ref Cluster
+      Description: Route 53 Arc Cluster
+
+  ControlPanel:
+    Type: AWS::Route53RecoveryControl::ControlPanel
+    Properties:
+      Name: !Sub ${ProjectId}-ControlPanel
+      ClusterArn: !Ref Cluster
+
+  RoutingControl1:
+    Type: AWS::Route53RecoveryControl::RoutingControl
+    Properties:
+      Name: !Sub ${ProjectId}-Region1
+      ClusterArn: !Ref Cluster
+      ControlPanelArn: !Ref ControlPanel
+
+  ArcControl1Secret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: arc-control1
+      Description: arc-control1
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref RoutingControl1
+
+  ArcControl1Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/arc/control1
+      Type: String
+      Value: !Ref RoutingControl1
+      Description: Route 53 Arc Control 1
+
+  RoutingControl2:
+    Type: AWS::Route53RecoveryControl::RoutingControl
+    Properties:
+      Name: !Sub ${ProjectId}-Region2
+      ClusterArn: !Ref Cluster
+      ControlPanelArn: !Ref ControlPanel
+
+  ArcControl2Secret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: arc-control2
+      Description: arc-control2
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref RoutingControl2
+
+  ArcControl2Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/arc/control2
+      Type: String
+      Value: !Ref RoutingControl2
+      Description: Route 53 Arc Control 2
+
+  RoutingControlHealthcheck1:
+    Type: AWS::Route53::HealthCheck
+    DependsOn: RoutingControl1
+    Properties:
+      HealthCheckConfig:
+        Type: RECOVERY_CONTROL
+        RoutingControlArn: !Ref RoutingControl1
+      HealthCheckTags:
+        - Key: Name
+          Value: !Sub ${ProjectId}-RoutingControlHealthcheck1
+
+  APISecretHealthCheck1:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "remittance-health-check-1"
+      Description: !Sub "remittance-health-check-1"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref RoutingControlHealthcheck1
+
+  HealthCheck1Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/route53/remittance/health-check-1
+      Type: String
+      Value: !Ref RoutingControlHealthcheck1
+      Description: Remittance Health Check 1
+
+  RoutingControlHealthcheck2:
+    Type: AWS::Route53::HealthCheck
+    DependsOn: RoutingControl2
+    Properties:
+      HealthCheckConfig:
+        Type: RECOVERY_CONTROL
+        RoutingControlArn: !Ref RoutingControl2
+      HealthCheckTags:
+        - Key: Name
+          Value: !Sub ${ProjectId}-RoutingControlHealthcheck2
+
+  APISecretHealthCheck2:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "remittance-health-check-2"
+      Description: !Sub "remittance-health-check-2"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref RoutingControlHealthcheck2
+
+  HealthCheck2Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/route53/remittance/health-check-2
+      Type: String
+      Value: !Ref RoutingControlHealthcheck2
+      Description: Remittance Health Check 2
+
+  HostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Ref DomainName
+
+  APISecretHostedZone:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "remittance-hosted-zone"
+      Description: !Sub "remittance-hosted-zone"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref HostedZone
+
+  HostedZoneParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/route53/remittance/hosted-zone
+      Type: String
+      Value: !Ref HostedZone
+      Description: Remittance Hosted Zone
+
+  UIHostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Ref UIDomainName
+
+  APISecretUIHostedZone:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: !Sub "remittance-ui-hosted-zone"
+      Description: !Sub "remittance-ui-hosted-zone"
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: !Ref BackupRegion
+          KmsKeyId: "alias/aws/secretsmanager"
+      SecretString: !Ref UIHostedZone
+
+  UIHostedZoneParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /crf/route53/remittance-ui/hosted-zone
+      Type: String
+      Value: !Ref UIHostedZone
+      Description: Remittance UI Hosted Zone
+
+Outputs:
+  HostedZone:
+    Value: !Ref HostedZone
+    Export:
+      Name: !Sub "${AWS::StackName}-HostedZone"
+  UIHostedZone:
+    Value: !Ref UIHostedZone
+    Export:
+      Name: !Sub "${AWS::StackName}-UIHostedZone"
+  ArcCluster:
+    Value: !Ref Cluster
+    Export:
+      Name: !Sub "${AWS::StackName}-Cluster"
+  HealthCheck1:
+    Value: !Ref RoutingControlHealthcheck1
+    Export:
+      Name: !Sub "${AWS::StackName}-HealthCheck1"
+  HealthCheck2:
+    Value: !Ref RoutingControlHealthcheck2
+    Export:
+      Name: !Sub "${AWS::StackName}-HealthCheck2"

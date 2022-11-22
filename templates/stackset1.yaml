@@ -1,0 +1,302 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+
+  ENV:
+    Type: String
+    Description: The environment variable
+  PrimaryRegion:
+    Type: String
+    Description: The primary region
+  SecondaryRegion:
+    Type: String
+    Description: The secondary region
+  VPCName:
+    Type: String
+    Description: The VPC name
+  PrimaryCIDR:
+    Type: String
+    Description: The primary VPC CIDR range
+  PrimaryPrivateSubnet1CIDR:
+    Type: String
+    Description: The primary private subnet1 CIDR range
+  PrimaryPrivateSubnet2CIDR:
+    Type: String
+    Description: The primary private subnet2 CIDR range
+  PrimaryPrivateSubnet3CIDR:
+    Type: String
+    Description: The primary private subnet3 CIDR range
+  PrimaryPublicSubnet1CIDR:
+    Type: String
+    Description: The primary public subnet1 CIDR range
+  PrimaryPublicSubnet2CIDR:
+    Type: String
+    Description: The primary public subnet2 CIDR range
+  PrimaryPublicSubnet3CIDR:
+    Type: String
+    Description: The primary public subnet3 CIDR range
+  PrimaryVPCSecretName:
+    Type: String
+    Description: The secret name to use to Store the VPC ID
+  SecondaryCIDR:
+    Type: String
+    Description: The secondary VPC CIDR range
+  SecondaryPrivateSubnet1CIDR:
+    Type: String
+    Description: The secondary private subnet1 CIDR range
+  SecondaryPrivateSubnet2CIDR:
+    Type: String
+    Description: The secondary private subnet2 CIDR range
+  SecondaryPrivateSubnet3CIDR:
+    Type: String
+    Description: The secondary private subnet3 CIDR range
+  SecondaryPublicSubnet1CIDR:
+    Type: String
+    Description: The secondary public subnet1 CIDR range
+  SecondaryPublicSubnet2CIDR:
+    Type: String
+    Description: The secondary public subnet2 CIDR range
+  SecondaryPublicSubnet3CIDR:
+    Type: String
+    Description: The secondary public subnet3 CIDR range
+  SecondaryVPCSecretName:
+    Type: String
+    Description: The secret name to use to Store the VPC ID
+  VPCPeeringSecretName:
+    Type: String
+    Description: The secret name to use to Store the VPC peering
+  ProjectId:
+    Type: String
+    Description: Project Id
+  DomainName:
+    Type: String
+    Description: Domain Name
+  UIDomainName:
+    Type: String
+    Description: UI Domain Name
+
+Resources:
+
+  VPCPrimary:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: VPCPrimary
+      Description: VPCPrimary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: Name
+          ParameterValue: !Ref VPCName
+        - ParameterKey: Region
+          ParameterValue: !Ref PrimaryRegion
+        - ParameterKey: BackupRegion
+          ParameterValue: !Ref SecondaryRegion
+        - ParameterKey: CIDR
+          ParameterValue: !Ref PrimaryCIDR
+        - ParameterKey: PrivateSubnet1CIDR
+          ParameterValue: !Ref PrimaryPrivateSubnet1CIDR
+        - ParameterKey: PrivateSubnet2CIDR
+          ParameterValue: !Ref PrimaryPrivateSubnet2CIDR
+        - ParameterKey: PrivateSubnet3CIDR
+          ParameterValue: !Ref PrimaryPrivateSubnet3CIDR
+        - ParameterKey: PublicSubnet1CIDR
+          ParameterValue: !Ref PrimaryPublicSubnet1CIDR
+        - ParameterKey: PublicSubnet2CIDR
+          ParameterValue: !Ref PrimaryPublicSubnet2CIDR
+        - ParameterKey: PublicSubnet3CIDR
+          ParameterValue: !Ref PrimaryPublicSubnet3CIDR
+        - ParameterKey: SecretName
+          ParameterValue: !Ref PrimaryVPCSecretName
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/vpc.yaml'
+
+  VPCSecondary:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: VPCSecondary
+      Description: VPCSecondary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref SecondaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: Name
+          ParameterValue: !Ref VPCName
+        - ParameterKey: Region
+          ParameterValue: !Ref SecondaryRegion
+        - ParameterKey: BackupRegion
+          ParameterValue: !Ref PrimaryRegion
+        - ParameterKey: CIDR
+          ParameterValue: !Ref SecondaryCIDR
+        - ParameterKey: PrivateSubnet1CIDR
+          ParameterValue: !Ref SecondaryPrivateSubnet1CIDR
+        - ParameterKey: PrivateSubnet2CIDR
+          ParameterValue: !Ref SecondaryPrivateSubnet2CIDR
+        - ParameterKey: PrivateSubnet3CIDR
+          ParameterValue: !Ref SecondaryPrivateSubnet3CIDR
+        - ParameterKey: PublicSubnet1CIDR
+          ParameterValue: !Ref SecondaryPublicSubnet1CIDR
+        - ParameterKey: PublicSubnet2CIDR
+          ParameterValue: !Ref SecondaryPublicSubnet2CIDR
+        - ParameterKey: PublicSubnet3CIDR
+          ParameterValue: !Ref SecondaryPublicSubnet3CIDR
+        - ParameterKey: SecretName
+          ParameterValue: !Ref SecondaryVPCSecretName
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/vpc.yaml'
+
+  VPCPeering:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn:
+      - VPCPrimary
+      - VPCSecondary
+    Properties:
+      StackSetName: VPCPeering
+      Description: VPCPeering
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: PeerRegion
+          ParameterValue: !Ref SecondaryRegion
+        - ParameterKey: SecretName
+          ParameterValue: !Ref VPCPeeringSecretName
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/vpc-peering.yaml'
+
+  VPCPeeringRoutePrimary:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn: VPCPeering
+    Properties:
+      StackSetName: VPCPeeringRoutePrimary
+      Description: VPCPeeringRoutePrimary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: PublicRouteTableID
+          ParameterValue: '{{resolve:secretsmanager:vpc1-public-route-table}}'
+        - ParameterKey: PrivateRouteTableID
+          ParameterValue: '{{resolve:secretsmanager:vpc1-private-route-table}}'
+        - ParameterKey: PeerCIDR
+          ParameterValue: !Ref SecondaryCIDR
+        - ParameterKey: PeeringConnectionID
+          ParameterValue: '{{resolve:secretsmanager:peering}}'
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/vpc-peering-routing.yaml'
+
+  VPCPeeringRouteSecondary:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn: VPCPeering
+    Properties:
+      StackSetName: VPCPeeringRouteSecondary
+      Description: VPCPeeringRouteSecondary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref SecondaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: PublicRouteTableID
+          ParameterValue: '{{resolve:secretsmanager:vpc2-public-route-table}}'
+        - ParameterKey: PrivateRouteTableID
+          ParameterValue: '{{resolve:secretsmanager:vpc2-private-route-table}}'
+        - ParameterKey: PeerCIDR
+          ParameterValue: !Ref PrimaryCIDR
+        - ParameterKey: PeeringConnectionID
+          ParameterValue: '{{resolve:secretsmanager:peering}}'
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/vpc-peering-routing.yaml'
+
+  AuroraPrimary:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn: VPCPrimary
+    Properties:
+      StackSetName: AuroraPrimary
+      Description: AuroraPrimary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: GlobalClusterIdentifier
+          ParameterValue: remittance
+        - ParameterKey: ClusterName
+          ParameterValue: dbcluster1
+        - ParameterKey: DatabaseName
+          ParameterValue: remittance
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/aurora-primary.yaml'
+
+  AuroraSecondary:
+    Type: AWS::CloudFormation::StackSet
+    DependsOn:
+      - VPCSecondary
+      - AuroraPrimary
+    Properties:
+      StackSetName: AuroraSecondary
+      Description: AuroraSecondary
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref SecondaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: SourceRegion
+          ParameterValue: !Ref PrimaryRegion
+        - ParameterKey: GlobalClusterIdentifier
+          ParameterValue: remittance
+        - ParameterKey: ClusterName
+          ParameterValue: dbcluster2
+        - ParameterKey: DatabaseName
+          ParameterValue: remittance
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/aurora-secondary.yaml'
+
+  Route53:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: Route53
+      Description: Route53
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: ProjectId
+          ParameterValue: !Ref ProjectId
+        - ParameterKey: DomainName
+          ParameterValue: !Ref DomainName
+        - ParameterKey: UIDomainName
+          ParameterValue: !Ref UIDomainName
+        - ParameterKey: BackupRegion
+          ParameterValue: !Ref SecondaryRegion
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/route53.yaml'
+

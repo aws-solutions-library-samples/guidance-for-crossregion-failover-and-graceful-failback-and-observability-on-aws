@@ -1,0 +1,337 @@
+------------------------------------------------------------
+./templates/AWSCloudFormationStackSetAdministrationRole.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W28[0m
+[33m|[0m
+[33m| Resource: ["AdministrationRole"][0m
+[33m| Line Numbers: [6][0m
+[33m|[0m
+[33m| Resource found with an explicit name, this disallows updates that require replacement of this resource[0m
+
+Failures count: 0
+Warnings count: 1
+------------------------------------------------------------
+./templates/AWSCloudFormationStackSetExecutionRole.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W28[0m
+[33m|[0m
+[33m| Resource: ["ExecutionRole"][0m
+[33m| Line Numbers: [6][0m
+[33m|[0m
+[33m| Resource found with an explicit name, this disallows updates that require replacement of this resource[0m
+
+Failures count: 0
+Warnings count: 1
+------------------------------------------------------------
+./templates/api.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W68[0m
+[33m|[0m
+[33m| Resource: ["ApiGatewayDeployment"][0m
+[33m| Line Numbers: [782][0m
+[33m|[0m
+[33m| AWS::ApiGateway::Deployment resources should be associated with an AWS::ApiGateway::UsagePlan. [0m
+------------------------------------------------------------
+[33m| WARN W69[0m
+[33m|[0m
+[33m| Resource: ["ApiStage"][0m
+[33m| Line Numbers: [796][0m
+[33m|[0m
+[33m| AWS::ApiGateway::Stage should have the AccessLogSetting property defined.[0m
+------------------------------------------------------------
+[33m| WARN W64[0m
+[33m|[0m
+[33m| Resource: ["ApiStage"][0m
+[33m| Line Numbers: [796][0m
+[33m|[0m
+[33m| AWS::ApiGateway::Stage resources should be associated with an AWS::ApiGateway::UsagePlan. [0m
+------------------------------------------------------------
+[33m| WARN W11[0m
+[33m|[0m
+[33m| Resource: ["LambdaFunctionRole", "ApiGatewayRole"][0m
+[33m| Line Numbers: [269, 831][0m
+[33m|[0m
+[33m| IAM role should not allow * resource on its permissions policy[0m
+------------------------------------------------------------
+[33m| WARN W92[0m
+[33m|[0m
+[33m| Resource: ["CreateRemittanceTableLambdaFunction", "DropRemittanceTableLambdaFunction", "GetRemittancesLambdaFunction", "CreateRemittanceLambdaFunction", "UpdateRemittanceLambdaFunction", "DeleteRemittanceLambdaFunction", "ClearRemittancesLambdaFunction", "ExecuteRunbookLambdaFunction"][0m
+[33m| Line Numbers: [61, 87, 113, 139, 165, 191, 217, 243][0m
+[33m|[0m
+[33m| Lambda functions should define ReservedConcurrentExecutions to reserve simultaneous executions[0m
+
+Failures count: 0
+Warnings count: 13
+------------------------------------------------------------
+./templates/aurora-primary.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W28[0m
+[33m|[0m
+[33m| Resource: ["DBInstance1"][0m
+[33m| Line Numbers: [124][0m
+[33m|[0m
+[33m| Resource found with an explicit name, this disallows updates that require replacement of this resource[0m
+
+Failures count: 0
+Warnings count: 1
+------------------------------------------------------------
+./templates/aurora-secondary.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W28[0m
+[33m|[0m
+[33m| Resource: ["DBInstance2"][0m
+[33m| Line Numbers: [102][0m
+[33m|[0m
+[33m| Resource found with an explicit name, this disallows updates that require replacement of this resource[0m
+
+Failures count: 0
+Warnings count: 1
+------------------------------------------------------------
+./templates/bucket.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W51[0m
+[33m|[0m
+[33m| Resource: ["Bucket", "LoggingBucket"][0m
+[33m| Line Numbers: [11, 29][0m
+[33m|[0m
+[33m| S3 bucket should likely have a bucket policy[0m
+------------------------------------------------------------
+[33m| WARN W35[0m
+[33m|[0m
+[33m| Resource: ["LoggingBucket"][0m
+[33m| Line Numbers: [29][0m
+[33m|[0m
+[33m| S3 Bucket should have access logging configured[0m
+
+Failures count: 0
+Warnings count: 3
+------------------------------------------------------------
+./templates/cloudfront-bucket.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W51[0m
+[33m|[0m
+[33m| Resource: ["Bucket", "LoggingBucket"][0m
+[33m| Line Numbers: [18, 36][0m
+[33m|[0m
+[33m| S3 bucket should likely have a bucket policy[0m
+------------------------------------------------------------
+[33m| WARN W35[0m
+[33m|[0m
+[33m| Resource: ["LoggingBucket"][0m
+[33m| Line Numbers: [36][0m
+[33m|[0m
+[33m| S3 Bucket should have access logging configured[0m
+
+Failures count: 0
+Warnings count: 3
+------------------------------------------------------------
+./templates/cloudfront.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W10[0m
+[33m|[0m
+[33m| Resource: ["CloudFrontDistribution"][0m
+[33m| Line Numbers: [110][0m
+[33m|[0m
+[33m| CloudFront Distribution should enable access logging[0m
+------------------------------------------------------------
+[33m| WARN W70[0m
+[33m|[0m
+[33m| Resource: ["CloudFrontDistribution"][0m
+[33m| Line Numbers: [110][0m
+[33m|[0m
+[33m| Cloudfront should use minimum protocol version TLS 1.2[0m
+
+Failures count: 0
+Warnings count: 2
+------------------------------------------------------------
+./templates/cloudwatch-alarms.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W28[0m
+[33m|[0m
+[33m| Resource: ["APIGateway4XXErrorAlarm", "APIGateway5xxErrorAlarm", "APIGatewayLatencyAlarm", "AWSLambdaGetRemittanceErrorsAlarm", "AWSLambdaGetRemittanceInvocationsAlarm", "AWSLambdaGetRemittanceDurationAlarm", "AWSLambdaCreateRemittanceErrorsAlarm", "AWSLambdaCreateRemittanceInvocationsAlarm", "AWSLambdaCreateRemittanceDurationAlarm", "AWSRDSdbcluster1instance1CPUUtilizationAlarm", "AWSRDSdbcluster1instance1HighDBConnectionsAlarm", "AWSRDSdbcluster1instance1HighDeadlocksAlarm", "AWSRDSdbcluster1instance1HighNetworkReceiveThroughputAlarm", "AWSRDSdbcluster1instance1HighNetworkTransmitThroughputAlarm", "AWSRDSdbcluster1instance1HighQueriesAlarm", "AWSRDSdbcluster1instance1HighQueueDepthAlarm", "AWSRDSdbcluster1instance1HighReadLatencyAlarm", "AWSRDSdbcluster1instance1HighWriteLatencyAlarm"][0m
+[33m| Line Numbers: [70, 91, 112, 133, 154, 175, 196, 217, 238, 259, 279, 299, 319, 339, 359, 379, 399, 419][0m
+[33m|[0m
+[33m| Resource found with an explicit name, this disallows updates that require replacement of this resource[0m
+
+Failures count: 0
+Warnings count: 18
+------------------------------------------------------------
+./templates/cloudwatch-dashboard.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/cognito.yaml
+------------------------------------------------------------------------------------------------------------------------
+[31m| FAIL F78[0m
+[31m|[0m
+[31m| Resource: ["UserPool"][0m
+[31m| Line Numbers: [22][0m
+[31m|[0m
+[31m| AWS Cognito UserPool should have MfaConfiguration set to 'ON' (MUST be wrapped in quotes) or at least 'OPTIONAL'[0m
+------------------------------------------------------------
+[31m| FAIL F3[0m
+[31m|[0m
+[31m| Resource: ["CognitoAuthorizedRole"][0m
+[31m| Line Numbers: [115][0m
+[31m|[0m
+[31m| IAM role should not allow * action on its permissions policy[0m
+------------------------------------------------------------
+[33m| WARN W11[0m
+[33m|[0m
+[33m| Resource: ["CognitoAuthorizedRole"][0m
+[33m| Line Numbers: [115][0m
+[33m|[0m
+[33m| IAM role should not allow * resource on its permissions policy[0m
+
+Failures count: 2
+Warnings count: 1
+------------------------------------------------------------
+./templates/create-buckets.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/eventbridge-awshealth.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W84[0m
+[33m|[0m
+[33m| Resource: ["LogGroupAWSHealthAPIGateway", "LogGroupAWSHealthLambda", "LogGroupAWSHealthRDS"][0m
+[33m| Line Numbers: [5, 11, 17][0m
+[33m|[0m
+[33m| CloudWatchLogs LogGroup should specify a KMS Key Id to encrypt the log data[0m
+
+Failures count: 0
+Warnings count: 3
+------------------------------------------------------------
+./templates/failover.yaml
+------------------------------------------------------------------------------------------------------------------------
+[31m| FAIL F38[0m
+[31m|[0m
+[31m| Resource: ["AutomationServiceRole"][0m
+[31m| Line Numbers: [15][0m
+[31m|[0m
+[31m| IAM role should not allow * resource with PassRole action on its permissions policy[0m
+------------------------------------------------------------
+[31m| FAIL F3[0m
+[31m|[0m
+[31m| Resource: ["AutomationServiceRole"][0m
+[31m| Line Numbers: [15][0m
+[31m|[0m
+[31m| IAM role should not allow * action on its permissions policy[0m
+------------------------------------------------------------
+[33m| WARN W11[0m
+[33m|[0m
+[33m| Resource: ["AutomationServiceRole"][0m
+[33m| Line Numbers: [15][0m
+[33m|[0m
+[33m| IAM role should not allow * resource on its permissions policy[0m
+------------------------------------------------------------
+[33m| WARN W28[0m
+[33m|[0m
+[33m| Resource: ["AutomationServiceRole"][0m
+[33m| Line Numbers: [15][0m
+[33m|[0m
+[33m| Resource found with an explicit name, this disallows updates that require replacement of this resource[0m
+
+Failures count: 2
+Warnings count: 2
+------------------------------------------------------------
+./templates/initialization.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W51[0m
+[33m|[0m
+[33m| Resource: ["StackSetBucket", "StackSetBucketLogging"][0m
+[33m| Line Numbers: [53, 69][0m
+[33m|[0m
+[33m| S3 bucket should likely have a bucket policy[0m
+------------------------------------------------------------
+[33m| WARN W28[0m
+[33m|[0m
+[33m| Resource: ["AdministrationRole", "ExecutionRole"][0m
+[33m| Line Numbers: [12, 36][0m
+[33m|[0m
+[33m| Resource found with an explicit name, this disallows updates that require replacement of this resource[0m
+------------------------------------------------------------
+[33m| WARN W35[0m
+[33m|[0m
+[33m| Resource: ["StackSetBucketLogging"][0m
+[33m| Line Numbers: [69][0m
+[33m|[0m
+[33m| S3 Bucket should have access logging configured[0m
+
+Failures count: 0
+Warnings count: 5
+------------------------------------------------------------
+./templates/route53-records.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/route53-ui-records.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/route53.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/stackset1.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/stackset2.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/stackset3.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/vpc-peering-routing.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/vpc-peering.yaml
+------------------------------------------------------------
+Failures count: 0
+Warnings count: 0
+------------------------------------------------------------
+./templates/vpc.yaml
+------------------------------------------------------------------------------------------------------------------------
+[33m| WARN W5[0m
+[33m|[0m
+[33m| Resource: ["LambdaSecurityGroup", "AuroraSecurityGroup"][0m
+[33m| Line Numbers: [357, 380][0m
+[33m|[0m
+[33m| Security Groups found with cidr open to world on egress[0m
+------------------------------------------------------------
+[33m| WARN W29[0m
+[33m|[0m
+[33m| Resource: ["LambdaSecurityGroup", "AuroraSecurityGroup"][0m
+[33m| Line Numbers: [357, 380][0m
+[33m|[0m
+[33m| Security Groups found egress with port range instead of just a single port[0m
+------------------------------------------------------------
+[33m| WARN W36[0m
+[33m|[0m
+[33m| Resource: ["LambdaSecurityGroup", "AuroraSecurityGroup"][0m
+[33m| Line Numbers: [357, 380][0m
+[33m|[0m
+[33m| Security group rules without a description obscure their purpose and may lead to bad practices in ensuring they only allow traffic from the ports and sources/destinations required.[0m
+------------------------------------------------------------
+[33m| WARN W60[0m
+[33m|[0m
+[33m| Resource: ["VPC"][0m
+[33m| Line Numbers: [46][0m
+[33m|[0m
+[33m| VPC should have a flow log attached[0m
+
+Failures count: 0
+Warnings count: 7

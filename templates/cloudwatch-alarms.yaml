@@ -1,0 +1,436 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  APIGatewayHealthCompositeAlarm:
+    Type: AWS::CloudWatch::CompositeAlarm
+    Properties:
+      ActionsEnabled: true
+      AlarmActions: []
+      AlarmName: API Gateway Health
+      AlarmRule: |-
+          ALARM("AWSAPIGateway-5xxErrors") OR 
+          ALARM("AWSAPIGateway-4xxErrors") OR 
+          ALARM("AWSAPIGateway-Latency")
+      InsufficientDataActions: []
+      OKActions: []
+    DependsOn:
+      - APIGateway4XXErrorAlarm
+      - APIGateway5xxErrorAlarm
+      - APIGatewayLatencyAlarm
+
+  LambdaHealthCompositeAlarm:
+    Type: AWS::CloudWatch::CompositeAlarm
+    Properties:
+      ActionsEnabled: true
+      AlarmActions: []
+      AlarmName: Lambda Health
+      AlarmRule: |-
+        ALARM("AWSLambda-CreateRemittance-Errors") OR 
+        ALARM("AWSLamdba-GetRemittance-Errors") OR 
+        ALARM("AWSLambda-GetRemittance-Duration") OR 
+        ALARM("AWSLambda-CreateRemittance-Duration")
+      InsufficientDataActions: []
+      OKActions: []
+    DependsOn:
+      - AWSLambdaGetRemittanceErrorsAlarm
+      - AWSLambdaGetRemittanceDurationAlarm
+      - AWSLambdaCreateRemittanceErrorsAlarm
+      - AWSLambdaCreateRemittanceDurationAlarm
+
+  RDSHealthCompositeAlarm:
+    Type: AWS::CloudWatch::CompositeAlarm
+    Properties:
+      ActionsEnabled: true
+      AlarmActions: []
+      AlarmName: RDS Health
+      AlarmRule: >-
+          ALARM("awsrds-dbcluster1-instance1-High-Network-Transmit-Throughput") OR 
+          ALARM("awsrds-dbcluster1-instance1-High-Network-Receive-Throughput") OR 
+          ALARM("awsrds-dbcluster1-instance1-High-Queue-Depth") OR 
+          ALARM("awsrds-dbcluster1-instance1-High-Write-Latency") OR 
+          ALARM("awsrds-dbcluster1-instance1-High-Read-Latency") OR 
+          ALARM("awsrds-dbcluster1-instance1-High-Deadlocks") OR 
+          ALARM("awsrds-dbcluster1-instance1-High-Queries") OR 
+          ALARM("awsrds-dbcluster1-instance1-CPU-Utilization") OR 
+          ALARM("awsrds-dbcluster1-instance1-High-DB-Connections")
+      InsufficientDataActions: []
+      OKActions: []
+    DependsOn:
+      - AWSRDSdbcluster1instance1CPUUtilizationAlarm
+      - AWSRDSdbcluster1instance1HighDBConnectionsAlarm
+      - AWSRDSdbcluster1instance1HighDeadlocksAlarm
+      - AWSRDSdbcluster1instance1HighNetworkReceiveThroughputAlarm
+      - AWSRDSdbcluster1instance1HighNetworkTransmitThroughputAlarm
+      - AWSRDSdbcluster1instance1HighQueriesAlarm
+      - AWSRDSdbcluster1instance1HighQueueDepthAlarm
+      - AWSRDSdbcluster1instance1HighReadLatencyAlarm
+      - AWSRDSdbcluster1instance1HighWriteLatencyAlarm
+
+  APIGateway4XXErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: AWSAPIGateway-4xxErrors
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: 4XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Average
+      Dimensions:
+          - Name: ApiName
+            Value: Remittance
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  
+  APIGateway5xxErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: AWSAPIGateway-5xxErrors
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Average
+      Dimensions:
+          - Name: ApiName
+            Value: Remittance
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  
+  APIGatewayLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: AWSAPIGateway-Latency
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: AWSAPIGateway-Latency
+      Namespace: AWS/ApiGateway
+      Statistic: Average
+      Dimensions:
+          - Name: ApiName
+            Value: Remittance
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 10000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+  
+  AWSLambdaGetRemittanceErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: AWSLamdba-GetRemittance-Errors
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Dimensions:
+          - Name: FunctionName
+            Value: GetRemittances
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+  
+  AWSLambdaGetRemittanceInvocationsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: AWSLambda-GetRemittance-Invocations
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: Invocations
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Dimensions:
+          - Name: FunctionName
+            Value: GetRemittances
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 2
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  AWSLambdaGetRemittanceDurationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: AWSLambda-GetRemittance-Duration
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: Duration
+      Namespace: AWS/Lambda
+      Statistic: Average
+      Dimensions:
+          - Name: FunctionName
+            Value: GetRemittances
+      Period: 900
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 10000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+
+  AWSLambdaCreateRemittanceErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: AWSLambda-CreateRemittance-Errors
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Dimensions:
+          - Name: FunctionName
+            Value: CreateRemittance
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  AWSLambdaCreateRemittanceInvocationsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: AWSLambda-CreateRemittance-Invocation
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: Invocations
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Dimensions:
+          - Name: FunctionName
+            Value: CreateRemittance
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 2
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  AWSLambdaCreateRemittanceDurationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: AWSLambda-CreateRemittance-Duration
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: Duration
+      Namespace: AWS/Lambda
+      Statistic: Average
+      Dimensions:
+          - Name: FunctionName
+            Value: CreateRemittance
+      Period: 900
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 10000
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+
+  AWSRDSdbcluster1instance1CPUUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: awsrds-dbcluster1-instance1-CPU-Utilization
+      ActionsEnabled: false
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Statistic: Average
+      Dimensions:
+          - Name: DBInstanceIdentifier
+            Value: dbcluster1-instance1
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 70
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  AWSRDSdbcluster1instance1HighDBConnectionsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: awsrds-dbcluster1-instance1-High-DB-Connections
+      ActionsEnabled: false
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: DatabaseConnections
+      Namespace: AWS/RDS
+      Statistic: Average
+      Dimensions:
+          - Name: DBInstanceIdentifier
+            Value: dbcluster1-instance1
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 100
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  AWSRDSdbcluster1instance1HighDeadlocksAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: awsrds-dbcluster1-instance1-High-Deadlocks
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: Deadlocks
+      Namespace: AWS/RDS
+      Statistic: Average
+      Dimensions:
+          - Name: DBInstanceIdentifier
+            Value: dbcluster1-instance1
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  AWSRDSdbcluster1instance1HighNetworkReceiveThroughputAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: awsrds-dbcluster1-instance1-High-Network-Receive-Throughput
+        ActionsEnabled: true
+        OKActions: []
+        AlarmActions: []
+        InsufficientDataActions: []
+        MetricName: NetworkReceiveThroughput
+        Namespace: AWS/RDS
+        Statistic: Average
+        Dimensions:
+            - Name: DBInstanceIdentifier
+              Value: dbcluster1-instance1
+        Period: 300
+        EvaluationPeriods: 1
+        DatapointsToAlarm: 1
+        Threshold: 10485760
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  AWSRDSdbcluster1instance1HighNetworkTransmitThroughputAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: awsrds-dbcluster1-instance1-High-Network-Transmit-Throughput
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: NetworkTransmitThroughput
+      Namespace: AWS/RDS
+      Statistic: Average
+      Dimensions:
+          - Name: DBInstanceIdentifier
+            Value: dbcluster1-instance1
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 10485760
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  AWSRDSdbcluster1instance1HighQueriesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: awsrds-dbcluster1-instance1-High-Queries
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: Queries
+      Namespace: AWS/RDS
+      Statistic: Average
+      Dimensions:
+          - Name: DBInstanceIdentifier
+            Value: dbcluster1-instance1
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 100
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  AWSRDSdbcluster1instance1HighQueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: awsrds-dbcluster1-instance1-High-Queue-Depth
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: DiskQueueDepth
+      Namespace: AWS/RDS
+      Statistic: Average
+      Dimensions:
+          - Name: DBInstanceIdentifier
+            Value: dbcluster1-instance1
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 50
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  AWSRDSdbcluster1instance1HighReadLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: awsrds-dbcluster1-instance1-High-Read-Latency
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: ReadLatency
+      Namespace: AWS/RDS
+      Statistic: Average
+      Dimensions:
+          - Name: DBInstanceIdentifier
+            Value: dbcluster1-instance1
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0.1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+
+  AWSRDSdbcluster1instance1HighWriteLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: awsrds-dbcluster1-instance1-High-Write-Latency
+      ActionsEnabled: true
+      OKActions: []
+      AlarmActions: []
+      InsufficientDataActions: []
+      MetricName: WriteLatency
+      Namespace: AWS/RDS
+      Statistic: Average
+      Dimensions:
+          - Name: DBInstanceIdentifier
+            Value: dbcluster1-instance1
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0.1
+      ComparisonOperator: GreaterThanOrEqualToThreshold

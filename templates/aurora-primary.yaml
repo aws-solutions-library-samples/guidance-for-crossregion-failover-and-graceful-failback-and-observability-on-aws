@@ -1,0 +1,164 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS Aurora Global database primary region
+Parameters:
+  GlobalClusterIdentifier:
+    Type: String
+  ClusterName:
+    Type: String
+  DatabaseName:
+    Type: String
+  MachineType:
+    Default: db.r4.large
+    Type: String
+    AllowedValues:
+      - db.r4.large
+      - db.r5.large
+  EngineFamily:
+    Default: 'aurora-postgresql11'
+    Type: String
+  PostgresVersion:
+    Default: '11.9'
+    Type: String
+  PostgresEngineMode:
+    Default: 'provisioned'
+    Type: String
+    AllowedValues:
+      - 'global'
+      - 'provisioned'
+Resources:
+
+  DbSecret:
+    Type: "AWS::SecretsManager::Secret"
+    Properties:
+      Name: database
+      Description: database
+      KmsKeyId: "alias/aws/secretsmanager"
+      ReplicaRegions:
+        - Region: us-west-2
+          KmsKeyId: "alias/aws/secretsmanager"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "remitadmin"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/'
+
+  GlobalDBCluster:
+    DependsOn:
+      - DBCluster
+    Type: AWS::RDS::GlobalCluster
+    Properties:
+      GlobalClusterIdentifier: !Ref GlobalClusterIdentifier
+      SourceDBClusterIdentifier: !Ref DBCluster
+
+  DBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Family: !Ref EngineFamily
+      Parameters:
+        max_connections: 300
+      Description: DBClusterParameterGroup
+
+  DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Family: !Ref EngineFamily
+      Parameters:
+        max_connections: 300
+      Description: DBParameterGroup
+
+  KMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: key-aurora
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Join
+                - ''
+                - - 'arn:aws:iam::'
+                  - !Ref 'AWS::AccountId'
+                  - ':root'
+            Action: 'kms:*'
+            Resource: '*'
+
+  KMSAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/aurora
+      TargetKeyId:
+        Ref: KMSKey
+
+  DBCluster:
+    DependsOn:
+      - DBClusterParameterGroup
+      - SubnetGroup
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DBClusterIdentifier: !Ref ClusterName
+      DBClusterParameterGroupName: !Ref DBClusterParameterGroup
+      DBSubnetGroupName: !Ref SubnetGroup
+      DatabaseName: !Ref DatabaseName
+      DeletionProtection: false
+      Engine: aurora-postgresql
+      EngineVersion: !Ref PostgresVersion
+      EngineMode: !Ref PostgresEngineMode
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref DbSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref DbSecret, ':SecretString:password}}' ]]
+      Port: '5432'
+      StorageEncrypted: true
+      KmsKeyId: !Ref KMSKey
+      VpcSecurityGroupIds:
+        - '{{resolve:ssm:/crf/aurora-security-group}}'
+
+  DBInstance1:
+    DependsOn:
+      - DBParameterGroup
+      - DBCluster
+      - SubnetGroup
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Sub '${ClusterName}-instance1'
+      DBInstanceClass: !Ref MachineType
+      DBParameterGroupName: !Ref DBParameterGroup
+      DBSubnetGroupName: !Ref SubnetGroup
+      Engine: aurora-postgresql
+      EngineVersion: !Ref PostgresVersion
+      PubliclyAccessible: false
+
+  SubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      SubnetIds:
+        - '{{resolve:secretsmanager:vpc1-private-subnet-1}}'
+        - '{{resolve:secretsmanager:vpc1-private-subnet-2}}'
+        - '{{resolve:secretsmanager:vpc1-private-subnet-3}}'
+      DBSubnetGroupDescription: !Sub ${DatabaseName}-subnet-group
+
+  SecretRDSInstanceAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref DbSecret
+      TargetId: !Ref DBInstance1
+      TargetType: AWS::RDS::DBInstance
+
+Outputs:
+  GlobalDBCluster:
+    Value: !Ref GlobalDBCluster
+    Export:
+      Name: !Sub "${AWS::StackName}-GlobalDBCluster"
+  DBEndpoint:
+    Value: !GetAtt DBCluster.Endpoint.Address
+    Export:
+      Name: !Sub "${AWS::StackName}-DBEndpoint"
+  DBPort:
+    Value: !GetAtt DBCluster.Endpoint.Port
+    Export:
+      Name: !Sub "${AWS::StackName}-DBPort"

@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  DomainName:
+    Type: String
+    Description: Domain Name
+  UIDomain1:
+    Type: String
+    Description: API Domain for Region 1
+  UIHostedZone1:
+    Type: String
+    Description: API Hosted Zone for Region 1
+  HostedZone:
+    Type: String
+    Description: Hosted Zone
+
+Resources:
+
+  AcmCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: '{{resolve:secretsmanager:remittance-ui-hosted-zone}}'
+      ValidationMethod: 'DNS'
+
+  RecordSetPrimary:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Ref DomainName
+      HostedZoneId: !Ref HostedZone
+      Type: A
+      AliasTarget:
+        DNSName: !Ref UIDomain1
+        HostedZoneId: !Ref UIHostedZone1
+        EvaluateTargetHealth: false
+
+
+

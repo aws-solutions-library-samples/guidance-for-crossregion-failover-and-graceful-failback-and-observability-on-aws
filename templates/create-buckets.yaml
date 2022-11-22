@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+
+  ENV:
+    Type: String
+    Description: The environment variable
+  PrimaryRegion:
+    Type: String
+    Description: The primary region
+  SecondaryRegion:
+    Type: String
+    Description: The secondary region
+  PrimaryCloudFrontBucketName:
+    Type: String
+    Description: The primary cloud front bucket name
+  SecondaryCloudFrontBucketName:
+    Type: String
+    Description: The secondary cloud front bucket name
+  PrimaryLambdaLayerBucketName:
+    Type: String
+    Description: The lambda layer bucket primary
+  SecondaryLambdaLayerBucketName:
+    Type: String
+    Description: The lambda layer bucket secondary
+  PrimaryLambdaBucketName:
+    Type: String
+    Description: The primary lambda bucket name
+  SecondaryLambdaBucketName:
+    Type: String
+    Description: The secondary lambda bucket name
+  DocumentBucketName:
+    Type: String
+    Description: The ssm document bucket name
+
+Resources:
+
+  PrimaryCloudFrontBucket:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: PrimaryCloudFrontBucket
+      Description: PrimaryCloudFrontBucket
+      PermissionModel: SELF_MANAGED
+      Capabilities: ["CAPABILITY_NAMED_IAM"]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: BucketName
+          ParameterValue: !Ref PrimaryCloudFrontBucketName
+        - ParameterKey: RegionName
+          ParameterValue: primary
+        - ParameterKey: BackupRegion
+          ParameterValue: !Ref SecondaryRegion
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/cloudfront-bucket.yaml'
+
+  SecondaryCloudFrontBucket:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: SecondaryCloudFrontBucket
+      Description: SecondaryCloudFrontBucket
+      PermissionModel: SELF_MANAGED
+      StackInstancesGroup:
+        - Regions:
+            - !Ref SecondaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: BucketName
+          ParameterValue: !Ref SecondaryCloudFrontBucketName
+        - ParameterKey: RegionName
+          ParameterValue: secondary
+        - ParameterKey: BackupRegion
+          ParameterValue: !Ref PrimaryRegion
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/cloudfront-bucket.yaml'
+
+  PrimaryLambdaLayerBucket:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: PrimaryLambdaLayerBucket
+      Description: PrimaryLambdaLayerBucket
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: BucketName
+          ParameterValue: !Ref PrimaryLambdaLayerBucketName
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/bucket.yaml'
+
+  SecondaryLambdaLayerBucket:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: SecondaryLambdaLayerBucket
+      Description: SecondaryLambdaLayerBucket
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref SecondaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: BucketName
+          ParameterValue: !Ref SecondaryLambdaLayerBucketName
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/bucket.yaml'
+
+  PrimaryLambdaBucket:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: PrimaryLambdaBucket
+      Description: PrimaryLambdaBucket
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: BucketName
+          ParameterValue: !Ref PrimaryLambdaBucketName
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/bucket.yaml'
+
+  SecondaryLambdaBucket:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: SecondaryLambdaBucket
+      Description: SecondaryLambdaBucket
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref SecondaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: BucketName
+          ParameterValue: !Ref SecondaryLambdaBucketName
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/bucket.yaml'
+
+  DocumentBucket:
+    Type: AWS::CloudFormation::StackSet
+    Properties:
+      StackSetName: DocumentBucket
+      Description: DocumentBucket
+      PermissionModel: SELF_MANAGED
+      Capabilities: [ "CAPABILITY_NAMED_IAM" ]
+      StackInstancesGroup:
+        - Regions:
+            - !Ref PrimaryRegion
+          DeploymentTargets:
+            Accounts:
+              - !Ref AWS::AccountId
+      Parameters:
+        - ParameterKey: BucketName
+          ParameterValue: !Ref DocumentBucketName
+      TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/bucket.yaml'
+
