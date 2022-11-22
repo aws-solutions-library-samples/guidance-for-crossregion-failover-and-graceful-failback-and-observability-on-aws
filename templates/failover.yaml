@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: AWS CloudFormation template IAM Roles for Systems Manager | Automation Service
+Description: (SO9100) CrossRegion Failover Graceful Failback and Observability v1
 
 Parameters:
   BucketName:

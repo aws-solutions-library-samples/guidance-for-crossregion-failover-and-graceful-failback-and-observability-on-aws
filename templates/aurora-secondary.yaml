@@ -1,6 +1,6 @@
----
 AWSTemplateFormatVersion: '2010-09-09'
-Description: AWS Aurora Global database secondary region
+Description: (SO9100) CrossRegion Failover Graceful Failback and Observability v1
+
 Parameters:
   SourceRegion:
     Type: String

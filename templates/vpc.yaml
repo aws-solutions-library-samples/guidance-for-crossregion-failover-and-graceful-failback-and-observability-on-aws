@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
+Description: (SO9100) CrossRegion Failover Graceful Failback and Observability v1
 
 # This CloudFormation template deploys a basic VPC / Network.  Specifically:
 # It deploys a VPC with 6 subnets (3 public, 3 private) across 3 Availability Zones
