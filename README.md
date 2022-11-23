@@ -100,6 +100,8 @@ We suggest using a temporary or a development account to test this guidance.
 
 You should also have familiarity with using the AWS CLI, including configuring the CLI for a specific account and region profile.  If not, please follow the [CLI setup instructions](https://github.com/aws/aws-cli).  Make sure you have a default profile set up; you may need to run `aws configure` if you have never set up the CLI before. Alternately, you can initialize an AWS session in your terminal using STS tokens provisioned by the administrator.
 
+**NPM**: Please make sure you have npm installed on your machine for building the UI application. 
+
 ### CloudFormation
 
 This guidance uses the [AWS CloudFormation](https://aws.amazon.com/cloudformation/).  In order to support multi-region deployment, StackSets feature of CloudFormation is used. To get a better understanding of StackSets refer document [Working with AWS CloudFormation StackSets](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/what-is-cfnstacksets.html).

@@ -10,6 +10,7 @@ DOMAIN_NAME=DOMAIN_NAME_PLACEHOLDER
 UI_DOMAIN_NAME=UI_DOMAIN_NAME_PLACEHOLDER
 ADMIN_EMAIL=ADMIN_EMAIL_PLACEHOLDER
 
+
 .DEFAULT_GOAL := deploy-base
 MAKE=/usr/bin/make
 
@@ -331,10 +332,13 @@ destroy-stack-set-3:
 build-web-app:
 	@echo "Started Building Web App"
 	# sh auth.sh $(ACCOUNT) $(ROLE) $(REGIONS) infrastructure destroy-all;
-	(sed -i '' "s|USER_POOL_ID_PLACEHOLDER|$(shell aws ssm --region us-east-1 get-parameter --name /crf/cognito/user-pool-id  --query Parameter.Value --output text)|g" ui/src/components/home/cognito.tsx; \
+	(cd ./ui; \
+	 npm install; \
+	 cd ..; \
+	 sed -i '' "s|USER_POOL_ID_PLACEHOLDER|$(shell aws ssm --region us-east-1 get-parameter --name /crf/cognito/user-pool-id  --query Parameter.Value --output text)|g" ui/src/components/home/cognito.tsx; \
      sed -i '' "s|IDENTITY_POOL_ID_PLACEHOLDER|$(shell aws ssm --region us-east-1 get-parameter --name /crf/cognito/identity-pool-id --query Parameter.Value --output text)|g" ui/src/components/home/cognito.tsx; \
      sed -i '' "s|WEB_CLIENT_ID_PLACEHOLDER|$(shell aws ssm --region us-east-1 get-parameter --name /crf/cognito/app-client --query Parameter.Value --output text)|g" ui/src/components/home/cognito.tsx; \
-     sed -i '' "s|DOMAIN_PLACEHOLDER|remittance.auth.us-east-1.amazoncognito.com|g" ui/src/components/home/cognito.tsx; \
+     sed -i '' "s|DOMAIN_PLACEHOLDER|crf-remittance-$(ENV).auth.us-east-1.amazoncognito.com|g" ui/src/components/home/cognito.tsx; \
      sed -i '' "s|DOMAIN_NAME_PLACEHOLDER|$(DOMAIN_NAME)|g" ui/src/config/index.ts; \
      sed -i '' "s|CLOUDFRONT_PLACEHOLDER|$(shell aws secretsmanager --region us-east-1 get-secret-value --secret-id cloudfront-primary-domain-name --query SecretString --output text)|g" ui/src/components/home/cognito.tsx; \
      cd ./ui; \
@@ -343,7 +347,7 @@ build-web-app:
      sed -i '' "s|$(shell aws ssm --region us-east-1 get-parameter --name /crf/cognito/user-pool-id  --query Parameter.Value --output text)|USER_POOL_ID_PLACEHOLDER|g" ui/src/components/home/cognito.tsx; \
      sed -i '' "s|$(shell aws ssm --region us-east-1 get-parameter --name /crf/cognito/identity-pool-id --query Parameter.Value --output text)|IDENTITY_POOL_ID_PLACEHOLDER|g" ui/src/components/home/cognito.tsx; \
      sed -i '' "s|$(shell aws ssm --region us-east-1 get-parameter --name /crf/cognito/app-client --query Parameter.Value --output text)|WEB_CLIENT_ID_PLACEHOLDER|g" ui/src/components/home/cognito.tsx; \
-     sed -i '' "s|remittance.auth.us-east-1.amazoncognito.com|DOMAIN_PLACEHOLDER|g" ui/src/components/home/cognito.tsx; \
+     sed -i '' "s|crf-remittance-$(ENV).auth.us-east-1.amazoncognito.com|DOMAIN_PLACEHOLDER|g" ui/src/components/home/cognito.tsx; \
      sed -i '' "s|$(DOMAIN_NAME)|DOMAIN_NAME_PLACEHOLDER|g" ui/src/config/index.ts; \
      sed -i '' "s|$(shell aws secretsmanager --region us-east-1 get-secret-value --secret-id cloudfront-primary-domain-name --query SecretString --output text)|CLOUDFRONT_PLACEHOLDER|g" ui/src/components/home/cognito.tsx;)
 	@echo "Finished Building Web App"

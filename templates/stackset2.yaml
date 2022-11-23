@@ -103,7 +103,7 @@ Resources:
         - ParameterKey: IdentityPoolName
           ParameterValue: remittance
         - ParameterKey: AuthDomainParam
-          ParameterValue: remittance
+          ParameterValue: !Sub 'crf-remittance-${ENV}'
         - ParameterKey: BackupRegion
           ParameterValue: !Ref SecondaryRegion
       TemplateURL: !Sub 'https://crf-stack-set-bucket-${ENV}.s3.amazonaws.com/cognito.yaml'
