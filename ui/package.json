@@ -10,7 +10,7 @@
     "react-router-dom": "^5.2.0",
     "connected-react-router": "^6.9.3",
     "react-scripts": "^5.0.1",
-    "aws-amplify": "^4.3.37",
+    "aws-amplify": "^6.0.29",
 
     "@babel/core": "^7.18.13",
     "@babel/polyfill": "^7.12.1",
