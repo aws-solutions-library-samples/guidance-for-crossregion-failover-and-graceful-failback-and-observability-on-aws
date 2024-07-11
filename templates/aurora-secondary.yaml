@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: (SO9100) CrossRegion Failover Graceful Failback and Observability v1
+Description: (SO9099) CrossRegion Failover Graceful Failback and Observability v1
 
 Parameters:
   SourceRegion:
